@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockFlow - Inventory & Order Management System</title>
+  
+  <!-- Bootstrap 5.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Google Fonts (Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Global Loading Spinner -->
+  <div id="global-spinner" class="spinner-overlay d-none">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="fw-semibold text-secondary">Processing request...</div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <div id="app-layout">
+    <!-- ============================================================== -->
+    <!-- Sidebar Navigation                                             -->
+    <!-- ============================================================== -->
+    <aside id="sidebar">
+      <div class="brand-header d-flex align-items-center gap-3">
+        <div class="brand-icon">
+          <i class="bi bi-box-seam-fill"></i>
+        </div>
+        <div>
+          <h5 class="text-white mb-0 fw-bold tracking-tight">StockFlow</h5>
+          <span class="text-xs text-secondary">Inventory & Order ERP</span>
+        </div>
+      </div>
+
+      <div class="nav-section-title">Operations</div>
+      <ul class="nav flex-column sidebar-nav mb-auto">
+        <li class="nav-item">
+          <a href="#" class="nav-link active" data-view="dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-view="pos">
+            <i class="bi bi-cart-check"></i>
+            <span>New Sale (POS)</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-view="products">
+            <i class="bi bi-boxes"></i>
+            <span>Products</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-view="orders">
+            <i class="bi bi-receipt"></i>
+            <span>Orders History</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" onclick="openCategoryModal(); return false;">
+            <i class="bi bi-tags"></i>
+            <span>Categories</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="d-flex align-items-center gap-2 text-secondary text-xs">
+          <i class="bi bi-shield-check text-success fs-6"></i>
+          <div>
+            <div class="text-white fw-semibold">REST API Engine</div>
+            <small>Django + SQLite v5.2</small>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================================================== -->
+    <!-- Main Content Area                                              -->
+    <!-- ============================================================== -->
+    <main id="main-content">
+      <!-- Top Navbar -->
+      <header class="top-navbar d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <button id="sidebar-toggle" class="btn btn-outline-secondary btn-sm d-lg-none" title="Toggle Sidebar">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+          <div class="d-none d-sm-block">
+            <h6 class="mb-0 fw-bold text-dark">Inventory Management System</h6>
+            <small class="text-muted text-xs">Production Full-Stack Architecture</small>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <!-- Backend Connection Indicator -->
+          <div id="api-status-badge" class="api-badge bg-light text-secondary border">
+            <span class="spinner-grow spinner-grow-sm text-secondary" style="width: 10px; height: 10px;"></span> Connecting...
+          </div>
+
+          <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" onclick="switchView('pos')">
+            <i class="bi bi-plus-lg"></i>
+            <span class="d-none d-md-inline">New Sale</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- View Sections Wrapper -->
+      <div class="p-3 p-md-4">
+        
+        <!-- ============================================================ -->
+        <!-- VIEW 1: Dashboard Overview                                   -->
+        <!-- ============================================================ -->
+        <section id="view-dashboard" class="view-section">
+          <!-- Quick Action Buttons -->
+          <div class="d-flex flex-wrap gap-2 mb-4">
+            <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" onclick="switchView('pos')">
+              <i class="bi bi-cart-plus-fill"></i> New Sale (POS)
+            </button>
+            <button class="btn btn-white border d-flex align-items-center gap-2 shadow-sm bg-white" onclick="openAddProductModal()">
+              <i class="bi bi-plus-circle text-primary"></i> Add Product
+            </button>
+            <button class="btn btn-white border d-flex align-items-center gap-2 shadow-sm bg-white" onclick="openCategoryModal()">
+              <i class="bi bi-tags text-primary"></i> Manage Categories
+            </button>
+            <button class="btn btn-white border d-flex align-items-center gap-2 shadow-sm bg-white" onclick="exportProductsCsv()">
+              <i class="bi bi-file-earmark-spreadsheet text-success"></i> Export Inventory CSV
+            </button>
+          </div>
+
+          <!-- Low Stock Alert Banner -->
+          <div id="low-stock-alert-banner" class="alert alert-warning border-warning d-flex align-items-center justify-content-between mb-4 d-none" role="alert">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+              <span id="low-stock-alert-text" class="fw-medium">Some products have dropped below the minimum threshold (5 units).</span>
+            </div>
+            <button class="btn btn-sm btn-outline-dark" onclick="switchView('products')">View Low Stock</button>
+          </div>
+
+          <!-- KPI Summary Cards -->
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-xl-3">
+              <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="text-muted text-xs fw-semibold text-uppercase">Total Revenue</span>
+                    <h3 id="metric-total-revenue" class="metric-value text-dark">₹0.00</h3>
+                    <small class="text-success text-xs"><i class="bi bi-arrow-up-right me-1"></i>Completed Orders</small>
+                  </div>
+                  <div class="metric-icon-wrap metric-icon-revenue">
+                    <i class="bi bi-currency-rupee"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="text-muted text-xs fw-semibold text-uppercase">Total Orders</span>
+                    <h3 id="metric-total-orders" class="metric-value text-dark">0</h3>
+                    <small class="text-muted text-xs">All recorded sales</small>
+                  </div>
+                  <div class="metric-icon-wrap metric-icon-orders">
+                    <i class="bi bi-receipt-cutoff"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="text-muted text-xs fw-semibold text-uppercase">Total Products</span>
+                    <h3 id="metric-total-products" class="metric-value text-dark">0</h3>
+                    <small class="text-muted text-xs">Catalog items</small>
+                  </div>
+                  <div class="metric-icon-wrap metric-icon-products">
+                    <i class="bi bi-box-seam"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="text-muted text-xs fw-semibold text-uppercase">Low Stock Alert</span>
+                    <h3 id="metric-low-stock" class="metric-value text-danger">0</h3>
+                    <small class="text-danger text-xs"><i class="bi bi-shield-exclamation me-1"></i>Items with &lt; 5 stock</small>
+                  </div>
+                  <div class="metric-icon-wrap metric-icon-lowstock">
+                    <i class="bi bi-exclamation-octagon"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Panel: Recent Orders & Low Stock Table -->
+          <div class="row g-4 mb-4">
+            <!-- Recent Orders -->
+            <div class="col-lg-7">
+              <div class="content-card mb-0">
+                <div class="content-card-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history text-primary fs-5"></i>
+                    <h6 class="mb-0 fw-bold">Recent Transactions</h6>
+                  </div>
+                  <button class="btn btn-sm btn-link text-primary p-0" onclick="switchView('orders')">View All &rarr;</button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-recent-orders-body">
+                      <tr><td colspan="5" class="text-center text-muted py-4">Loading orders...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Low Stock Warnings -->
+            <div class="col-lg-5">
+              <div class="content-card mb-0">
+                <div class="content-card-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-bell-fill text-danger fs-5"></i>
+                    <h6 class="mb-0 fw-bold">Low Stock Watchlist</h6>
+                  </div>
+                  <button class="btn btn-sm btn-link text-primary p-0" onclick="switchView('products')">Inventory &rarr;</button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-low-stock-body">
+                      <tr><td colspan="5" class="text-center text-muted py-4">Loading watchlist...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Second Row: Top-Selling Products & Order Status Breakdown -->
+          <div class="row g-4">
+            <!-- Top-Selling Products -->
+            <div class="col-lg-7">
+              <div class="content-card mb-0">
+                <div class="content-card-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-graph-up-arrow text-success fs-5"></i>
+                    <h6 class="mb-0 fw-bold">Top-Selling Products</h6>
+                  </div>
+                  <small class="text-muted text-xs">Aggregated completed sales</small>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th style="width: 50px;">Rank</th>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th class="text-center">Units Sold</th>
+                        <th class="text-end">Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-top-selling-body">
+                      <tr><td colspan="5" class="text-center text-muted py-4">Loading top products...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Order Status Breakdown -->
+            <div class="col-lg-5">
+              <div class="content-card mb-0">
+                <div class="content-card-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart-fill text-primary fs-5"></i>
+                    <h6 class="mb-0 fw-bold">Order Fulfillment Breakdown</h6>
+                  </div>
+                  <small class="text-muted text-xs">Lifecycle status</small>
+                </div>
+                <div class="p-3">
+                  <!-- Progress Bar -->
+                  <div class="progress mb-3" style="height: 12px;" id="dashboard-status-progress">
+                    <div id="prog-completed" class="progress-bar bg-success" style="width: 0%" title="Completed"></div>
+                    <div id="prog-pending" class="progress-bar bg-warning" style="width: 0%" title="Pending"></div>
+                    <div id="prog-cancelled" class="progress-bar bg-secondary" style="width: 0%" title="Cancelled"></div>
+                  </div>
+
+                  <div class="row g-2 text-center">
+                    <div class="col-4">
+                      <div class="p-2 border rounded-2 bg-light">
+                        <small class="text-success fw-bold d-block text-xs text-uppercase">Completed</small>
+                        <h5 id="status-completed-count" class="mb-0 fw-bold text-dark">0</h5>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="p-2 border rounded-2 bg-light">
+                        <small class="text-warning fw-bold d-block text-xs text-uppercase">Pending</small>
+                        <h5 id="status-pending-count" class="mb-0 fw-bold text-dark">0</h5>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="p-2 border rounded-2 bg-light">
+                        <small class="text-secondary fw-bold d-block text-xs text-uppercase">Cancelled</small>
+                        <h5 id="status-cancelled-count" class="mb-0 fw-bold text-dark">0</h5>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 2: Products Catalog & Inventory Management              -->
+        <!-- ============================================================ -->
+        <section id="view-products" class="view-section d-none">
+          <div class="content-card">
+            <div class="content-card-header">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-boxes text-primary fs-5"></i>
+                <h6 class="mb-0 fw-bold">Products Inventory</h6>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1" onclick="exportProductsCsv()">
+                  <i class="bi bi-file-earmark-arrow-down"></i> Export CSV
+                </button>
+                <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onclick="openCategoryModal()">
+                  <i class="bi bi-tags"></i> Categories
+                </button>
+                <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" onclick="openAddProductModal()">
+                  <i class="bi bi-plus-lg"></i> Add Product
+                </button>
+              </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="p-3 bg-light border-bottom">
+              <div class="row g-2">
+                <div class="col-md-5">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="products-search-input" class="form-control" placeholder="Search by product name or SKU...">
+                  </div>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                  <select id="products-category-filter" class="form-select form-select-sm">
+                    <option value="">All Categories</option>
+                  </select>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                  <select id="products-stock-filter" class="form-select form-select-sm">
+                    <option value="">All Stock Levels</option>
+                    <option value="low_stock">Low Stock Alert (&lt; 5)</option>
+                    <option value="in_stock">In Stock (&gt; 0)</option>
+                    <option value="out_of_stock">Out of Stock (0)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Products Table -->
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Cost Price</th>
+                    <th>Selling Price</th>
+                    <th>Stock Level</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="products-table-body">
+                  <tr><td colspan="7" class="text-center text-muted py-5">Loading products...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 3: Orders History                                       -->
+        <!-- ============================================================ -->
+        <section id="view-orders" class="view-section d-none">
+          <div class="content-card">
+            <div class="content-card-header">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-receipt text-primary fs-5"></i>
+                <h6 class="mb-0 fw-bold">Order History & Sales Records</h6>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1" onclick="exportOrdersCsv()">
+                  <i class="bi bi-file-earmark-arrow-down"></i> Export CSV
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="switchView('pos')">
+                  <i class="bi bi-plus-lg me-1"></i> New Order
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="p-3 bg-light border-bottom">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <!-- Status Tabs -->
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-secondary order-status-filter-btn active" data-status="">All</button>
+                  <button type="button" class="btn btn-outline-secondary order-status-filter-btn" data-status="Completed">Completed</button>
+                  <button type="button" class="btn btn-outline-secondary order-status-filter-btn" data-status="Pending">Pending</button>
+                  <button type="button" class="btn btn-outline-secondary order-status-filter-btn" data-status="Cancelled">Cancelled</button>
+                </div>
+
+                <!-- Search Input -->
+                <div class="input-group input-group-sm" style="max-width: 320px;">
+                  <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" id="orders-search-input" class="form-control" placeholder="Search order ID or customer...">
+                </div>
+              </div>
+            </div>
+
+            <!-- Orders Table -->
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Customer Name</th>
+                    <th>Date & Time</th>
+                    <th>Items</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-table-body">
+                  <tr><td colspan="7" class="text-center text-muted py-5">Loading orders...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 4: Point of Sale (POS) / New Sale Form                  -->
+        <!-- ============================================================ -->
+        <section id="view-pos" class="view-section d-none">
+          <div class="row g-4">
+            <!-- Left: Catalog & Product Picker -->
+            <div class="col-lg-7 col-xl-8">
+              <div class="content-card mb-0">
+                <div class="content-card-header">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-grid text-primary fs-5"></i>
+                    <h6 class="mb-0 fw-bold">Select Products for Sale</h6>
+                  </div>
+                  <!-- Search input -->
+                  <div class="input-group input-group-sm" style="max-width: 260px;">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="pos-search-input" class="form-control" placeholder="Search catalog...">
+                  </div>
+                </div>
+
+                <!-- Category Pills -->
+                <div class="p-3 bg-light border-bottom">
+                  <div id="pos-category-pills" class="d-flex align-items-center gap-2 overflow-auto pb-1">
+                    <button class="category-pill active">All</button>
+                  </div>
+                </div>
+
+                <!-- Product Grid -->
+                <div class="p-3">
+                  <div id="pos-catalog-grid" class="row g-3" style="max-height: calc(100vh - 17rem); overflow-y: auto;">
+                    <div class="col-12 text-center text-muted py-5">Loading catalog...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Order Ticket & Checkout Panel -->
+            <div class="col-lg-5 col-xl-4">
+              <div class="pos-cart-panel">
+                <div class="p-3 border-bottom bg-light">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-bag-check-fill text-primary"></i> Current Sale
+                    </h6>
+                    <span id="pos-cart-count" class="badge bg-primary rounded-pill">0</span>
+                  </div>
+
+                  <!-- Customer Name Input -->
+                  <div class="mb-2">
+                    <label class="form-label text-xs fw-semibold text-muted mb-1">Customer Name <span class="text-danger">*</span></label>
+                    <input type="text" id="pos-customer-name" class="form-control form-control-sm" placeholder="e.g. Acme Inc. or Jane Smith" required>
+                  </div>
+
+                  <!-- Order Status (Instant Completion vs Pending) -->
+                  <div>
+                    <label class="form-label text-xs fw-semibold text-muted mb-1">Fulfillment Status</label>
+                    <select id="pos-order-status" class="form-select form-select-sm">
+                      <option value="Completed" selected>Completed (Deducts Stock Immediately)</option>
+                      <option value="Pending">Pending (Reserve/Unpaid Invoice)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Items list -->
+                <div id="pos-cart-items-list" class="pos-cart-items">
+                  <!-- Rendered via JS -->
+                </div>
+
+                <!-- Order Totals & Action -->
+                <div class="p-3 border-top bg-light mt-auto">
+                  <div class="d-flex justify-content-between text-muted text-xs mb-1">
+                    <span>Subtotal:</span>
+                    <span id="pos-subtotal" class="fw-semibold text-dark">₹0.00</span>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted text-xs mb-3">
+                    <span>Sales Tax (0%):</span>
+                    <span class="fw-semibold text-dark">₹0.00</span>
+                  </div>
+                  <div class="d-flex justify-content-between fs-5 fw-bold text-dark mb-3">
+                    <span>Total Due:</span>
+                    <span id="pos-total" class="text-primary">₹0.00</span>
+                  </div>
+
+                  <div class="d-grid gap-2">
+                    <button id="btn-pos-checkout" class="btn btn-primary fw-semibold py-2 d-flex align-items-center justify-content-center gap-2" onclick="handleCheckoutOrder()" disabled>
+                      <i class="bi bi-check2-circle fs-5"></i> Complete Order
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="clearCart()">
+                      <i class="bi bi-trash me-1"></i> Clear Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: Add / Edit Product                                      -->
+  <!-- ============================================================== -->
+  <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <form id="product-form" novalidate>
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold" id="productModalLabel">Add New Product</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <input type="hidden" id="product-id-input">
+
+            <div class="mb-3">
+              <label for="product-name-input" class="form-label fw-semibold text-xs text-muted">Product Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="product-name-input" required placeholder="e.g. Ergonomic Office Chair">
+              <div class="invalid-feedback">Please provide a product name.</div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="product-sku-input" class="form-label fw-semibold text-xs text-muted">SKU (Unique Identifier) <span class="text-danger">*</span></label>
+                <input type="text" class="form-control text-uppercase font-monospace" id="product-sku-input" required placeholder="e.g. FURN-CHAIR-01">
+                <div class="invalid-feedback">Unique SKU code is required.</div>
+              </div>
+              <div class="col-md-6">
+                <label for="product-category-input" class="form-label fw-semibold text-xs text-muted">Category <span class="text-danger">*</span></label>
+                <select class="form-select" id="product-category-input" required>
+                  <option value="">Select Category</option>
+                </select>
+                <div class="invalid-feedback">Category selection is required.</div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="product-cost-input" class="form-label fw-semibold text-xs text-muted">Cost Price (₹) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" step="0.01" min="0" class="form-control" id="product-cost-input" required placeholder="0.00">
+                </div>
+                <div class="invalid-feedback">Cost price must be >= 0.</div>
+              </div>
+              <div class="col-md-6">
+                <label for="product-selling-input" class="form-label fw-semibold text-xs text-muted">Selling Price (₹) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" step="0.01" min="0" class="form-control" id="product-selling-input" required placeholder="0.00">
+                </div>
+                <div class="invalid-feedback">Selling price must be >= 0.</div>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label for="product-stock-input" class="form-label fw-semibold text-xs text-muted">Initial Stock Quantity <span class="text-danger">*</span></label>
+              <input type="number" min="0" class="form-control" id="product-stock-input" required placeholder="0">
+              <div class="invalid-feedback">Stock quantity must be >= 0.</div>
+              <small class="text-muted text-xs">Items with stock &lt; 5 trigger automatic Low Stock alerts.</small>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4 fw-semibold">Save Product</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: Order Details Viewer                                    -->
+  <!-- ============================================================== -->
+  <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <div>
+            <h5 class="modal-title fw-bold" id="orderDetailsModalLabel">Order Details</h5>
+            <span id="modal-order-id" class="text-muted font-monospace text-xs">#ORD-XXXXX</span>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3 mb-4 p-3 bg-light rounded-3">
+            <div class="col-sm-4">
+              <span class="text-muted text-xs fw-semibold text-uppercase d-block">Customer</span>
+              <span id="modal-order-customer" class="fw-bold text-dark">-</span>
+            </div>
+            <div class="col-sm-4">
+              <span class="text-muted text-xs fw-semibold text-uppercase d-block">Created At</span>
+              <span id="modal-order-date" class="text-dark">-</span>
+            </div>
+            <div class="col-sm-4">
+              <span class="text-muted text-xs fw-semibold text-uppercase d-block">Status</span>
+              <span id="modal-order-status" class="badge bg-secondary">-</span>
+            </div>
+          </div>
+
+          <h6 class="fw-bold mb-3">Line Items</h6>
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Product</th>
+                  <th class="text-center" style="width: 80px;">Qty</th>
+                  <th class="text-end" style="width: 120px;">Unit Price</th>
+                  <th class="text-end" style="width: 130px;">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="modal-order-items-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="3" class="text-end fw-bold">Grand Total:</th>
+                  <th id="modal-order-total" class="text-end fw-bold fs-5 text-primary">₹0.00</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light d-flex justify-content-between">
+          <div class="d-flex gap-2">
+            <button id="btn-modal-cancel-order" class="btn btn-outline-danger btn-sm" onclick="markViewingOrderCancelled()">
+              <i class="bi bi-x-circle me-1"></i> Cancel Order
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="printOrderReceiptFromModal()">
+              <i class="bi bi-printer me-1"></i> Print Receipt
+            </button>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <button id="btn-modal-complete-order" class="btn btn-success fw-semibold" onclick="markViewingOrderCompleted()">
+              <i class="bi bi-check2-circle me-1"></i> Mark as Completed
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: Category Management                                     -->
+  <!-- ============================================================== -->
+  <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold" id="categoryModalLabel">
+            <i class="bi bi-tags text-primary me-2"></i>Product Categories
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Add New Category Form -->
+          <div class="card bg-light border-0 mb-4">
+            <div class="card-body">
+              <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle me-1 text-primary"></i> Create New Category</h6>
+              <form id="category-form" onsubmit="handleCreateCategory(event)">
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-5">
+                    <label class="form-label text-xs fw-semibold text-muted mb-1">Category Name <span class="text-danger">*</span></label>
+                    <input type="text" id="new-category-name" class="form-control form-control-sm" placeholder="e.g. Storage Devices" required>
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label text-xs fw-semibold text-muted mb-1">Description (Optional)</label>
+                    <input type="text" id="new-category-desc" class="form-control form-control-sm" placeholder="Brief description...">
+                  </div>
+                  <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold">
+                      <i class="bi bi-plus-lg me-1"></i> Add
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Existing Categories List -->
+          <h6 class="fw-bold mb-3">Existing Categories</h6>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Category Name</th>
+                  <th>Slug</th>
+                  <th>Description</th>
+                  <th class="text-center">Products</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody id="category-modal-table-body">
+                <tr><td colspan="5" class="text-center text-muted py-3">Loading categories...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: Quick Restock Modal                                     -->
+  <!-- ============================================================== -->
+  <div class="modal fade" id="restockModal" tabindex="-1" aria-labelledby="restockModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <form id="restock-form" onsubmit="handleRestockSubmit(event)">
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold" id="restockModalLabel">
+              <i class="bi bi-box-arrow-in-down text-primary me-2"></i>Restock Product
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <input type="hidden" id="restock-product-id">
+            
+            <div class="mb-3 p-3 bg-light rounded-3">
+              <div class="fw-bold fs-6 text-dark" id="restock-product-name">Product Name</div>
+              <div class="d-flex align-items-center gap-3 mt-1 text-muted text-xs">
+                <span>SKU: <strong class="font-monospace text-dark" id="restock-product-sku">-</strong></span>
+                <span>Current Stock: <span class="badge bg-secondary" id="restock-current-stock">0 units</span></span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="restock-quantity-input" class="form-label text-xs fw-semibold text-muted">Quantity to Add <span class="text-danger">*</span></label>
+              <input type="number" class="form-control form-control-lg text-center fw-bold" id="restock-quantity-input" min="1" value="10" required>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-center mb-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="setRestockQty(5)">+5</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="setRestockQty(10)">+10</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="setRestockQty(25)">+25</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="setRestockQty(50)">+50</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary px-3" onclick="setRestockQty(100)">+100</button>
+            </div>
+          </div>
+          <div class="modal-footer border-top bg-light">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4 fw-semibold">
+              <i class="bi bi-check-lg me-1"></i> Update Stock
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: Order Receipt / Invoice Modal                           -->
+  <!-- ============================================================== -->
+  <div class="modal fade" id="orderReceiptModal" tabindex="-1" aria-labelledby="orderReceiptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom no-print">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-receipt text-primary fs-5"></i>
+            <h5 class="modal-title fw-bold mb-0">Sales Receipt</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 printable-receipt">
+          <!-- Receipt Header -->
+          <div class="text-center mb-4 border-bottom pb-3">
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-3 p-2 mb-2" style="width: 42px; height: 42px;">
+              <i class="bi bi-box-seam-fill fs-5"></i>
+            </div>
+            <h5 class="fw-bold mb-0">StockFlow ERP</h5>
+            <small class="text-muted d-block text-xs">Inventory & Point of Sale System</small>
+            <div id="receipt-status-badge" class="badge bg-success-subtle text-success border border-success-subtle mt-2 px-3 py-1 fw-bold">
+              Sale Completed
+            </div>
+          </div>
+
+          <!-- Meta Info -->
+          <div class="row g-2 mb-3 text-xs">
+            <div class="col-6">
+              <span class="text-muted d-block">Order Number:</span>
+              <strong id="receipt-order-id" class="font-monospace text-dark">-</strong>
+            </div>
+            <div class="col-6 text-end">
+              <span class="text-muted d-block">Date:</span>
+              <strong id="receipt-date" class="text-dark">-</strong>
+            </div>
+            <div class="col-12 mt-2">
+              <span class="text-muted d-block">Customer:</span>
+              <strong id="receipt-customer" class="text-dark fs-6">-</strong>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div class="table-responsive mb-3">
+            <table class="table table-sm align-middle receipt-table mb-0">
+              <thead class="border-bottom">
+                <tr class="text-xs text-muted">
+                  <th>Item</th>
+                  <th class="text-center">Qty</th>
+                  <th class="text-end">Price</th>
+                  <th class="text-end">Total</th>
+                </tr>
+              </thead>
+              <tbody id="receipt-items-body" class="text-sm">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Totals -->
+          <div class="border-top pt-2">
+            <div class="d-flex justify-content-between text-xs text-muted mb-1">
+              <span>Subtotal:</span>
+              <span id="receipt-subtotal" class="fw-semibold text-dark">₹0.00</span>
+            </div>
+            <div class="d-flex justify-content-between text-xs text-muted mb-2">
+              <span>Tax (0%):</span>
+              <span class="fw-semibold text-dark">₹0.00</span>
+            </div>
+            <div class="d-flex justify-content-between fs-5 fw-bold text-dark border-top pt-2">
+              <span>Total Paid:</span>
+              <span id="receipt-total" class="text-primary">₹0.00</span>
+            </div>
+          </div>
+
+          <div class="text-center text-muted text-xs mt-4 pt-2 border-top">
+            <p class="mb-0">Thank you for your business!</p>
+            <small>Generated by StockFlow ERP</small>
+          </div>
+        </div>
+        <div class="modal-footer border-top bg-light no-print d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="printReceipt()">
+              <i class="bi bi-printer me-1"></i> Print Receipt
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="newSaleFromReceipt()">
+              <i class="bi bi-plus-lg me-1"></i> New Sale
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5.3 Bundle JS with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <!-- Custom JS Modules -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
